@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GeoPulse 3D - Live Location & Rooftop Radar</title>
+
+    <!-- Leaflet 3D/Map CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <!-- Adsterra Script Slot 3 & 4 (Popunder & Analytics Sync) -->
+    <script data-cfasync="false" src="https://afders.org/1/da2ddfde7688ee49f9ad28f77c565948"></script>
+
+    <style>
+        :root {
+            --primary: #00f2fe;
+            --secondary: #4facfe;
+            --accent: #ff0055;
+            --bg-dark: #080b10;
+            --card-glass: rgba(16, 22, 34, 0.85);
+            --border-glass: rgba(0, 242, 254, 0.2);
+            --text-main: #f0f6fc;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Hind Siliguri', 'Outfit', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+        }
+
+        #app-viewport {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #map-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .top-hud-header {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 92%;
+            max-width: 480px;
+            background: var(--card-glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-glass);
+            border-radius: 20px;
+            padding: 10px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+
+        .user-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .profile-avatar-thumb {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            border: 2px solid var(--primary);
+            object-fit: cover;
+        }
+
+        .app-title-text {
+            font-size: 15px;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1.1;
+        }
+
+        .app-sub-text {
+            font-size: 10px;
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .hud-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-hud-banner {
+            position: absolute;
+            top: 75px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 92%;
+            max-width: 480px;
+            background: rgba(8, 11, 16, 0.9);
+            border: 1px solid var(--primary);
+            border-radius: 16px;
+            padding: 12px;
+            z-index: 999;
+            display: none;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-hud-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .turn-icon {
+            font-size: 26px;
+            color: var(--primary);
+        }
+
+        .nav-text-box {
+            flex: 1;
+        }
+
+        .nav-instruction {
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .nav-meta-info {
+            font-size: 11px;
+            color: #a0aec0;
+            display: flex;
+            gap: 12px;
+            margin-top: 2px;
+        }
+
+        .ad-container-top {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin-top: 8px;
+            overflow: hidden;
+            border-radius: 8px;
+        }
+
+        .bottom-dock-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 92%;
+            max-width: 480px;
+            background: var(--card-glass);
+            border: 1px solid var(--border-glass);
+            backdrop-filter: blur(15px);
+            border-radius: 24px;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .dock-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: #a0aec0;
+            background: none;
+            border: none;
+            font-size: 11px;
+            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: 16px;
+        }
+
+        .dock-item.active {
+            color: var(--primary);
+            background: rgba(0, 242, 254, 0.12);
+        }
+
+        .dock-item i {
+            font-size: 18px;
+        }
+
+        .sliding-panel {
+            position: absolute;
+            bottom: -100%;
+            left: 0;
+            width: 100%;
+            max-height: 80vh;
+            background: rgba(12, 16, 24, 0.95);
+            border-top: 2px solid var(--primary);
+            border-radius: 28px 28px 0 0;
+            padding: 20px;
+            z-index: 1001;
+            transition: bottom 0.4s cubic-bezier(0.1, 0.9, 0.2, 1);
+            overflow-y: auto;
+        }
+
+        .sliding-panel.open {
+            bottom: 0;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .panel-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .close-panel-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: #fff;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        #expired-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 7, 10, 0.96);
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .expired-box {
+            background: rgba(255, 0, 85, 0.08);
+            border: 1px solid var(--accent);
+            border-radius: 24px;
+            padding: 30px 20px;
+            max-width: 380px;
+        }
+
+        #call-pip-window {
+            position: absolute;
+            top: 130px;
+            right: 15px;
+            width: 140px;
+            height: 190px;
+            background: #000;
+            border: 2px solid var(--primary);
+            border-radius: 16px;
+            z-index: 2000;
+            display: none;
+            overflow: hidden;
+        }
+
+        .pip-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .call-controls-mini {
+            position: absolute;
+            bottom: 6px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .call-mini-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: none;
+            color: #fff;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .btn-end { background: var(--accent); }
+        .btn-mute { background: rgba(255,255,255,0.3); }
+
+        .btn-action {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: #000;
+            font-weight: 700;
+            padding: 12px;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 14px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .select-input, .text-input {
+            width: 100%;
+            padding: 10px 14px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 12px;
+            color: #fff;
+            margin-bottom: 12px;
+            outline: none;
+        }
+
+        .ad-box-300 {
+            width: 300px;
+            height: 250px;
+            margin: 15px auto;
+            background: rgba(255,255,255,0.02);
+            border: 1px dashed rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-viewport">
+    <div id="map-container"></div>
+
+    <div class="top-hud-header">
+        <div class="user-brand">
+            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" id="header-avatar" class="profile-avatar-thumb" alt="Avatar">
+            <div>
+                <div class="app-title-text" id="header-username">আফসানা রহমান</div>
+                <div class="app-sub-text"><i class="fa-solid fa-layer-group"></i> <span id="altitude-badge">ছাদ / Rooftop (১৫m)</span></div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="hud-btn" onclick="toggleMapTile()"><i class="fa-solid fa-earth-americas"></i> 3D</button>
+            <button class="hud-btn" style="color: #00f2fe;" onclick="openShareModal()"><i class="fa-solid fa-share-nodes"></i> লিঙ্ক</button>
+        </div>
+    </div>
+
+    <div class="nav-hud-banner" id="nav-hud">
+        <div class="nav-hud-content">
+            <i class="fa-solid fa-diamond-turn-right turn-icon" id="hud-direction-icon"></i>
+            <div class="nav-text-box">
+                <div class="nav-instruction" id="hud-instruction-text">সোজা ২০০ মিটার এগিয়ে ডানদিকে মোড় নিন</div>
+                <div class="nav-meta-info">
+                    <span>দূরত্ব: <b id="hud-distance" style="color:#00f2fe">৪৫০m</b></span>
+                    <span>সময়: <b id="hud-eta" style="color:#00f2fe">২ মিনিট</b></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="ad-container-top">
+            <script>
+                atOptions = {
+                    'key' : 'bc839bafa54f4a2d4ab2878bae6e5932',
+                    'format' : 'iframe',
+                    'height' : 50,
+                    'width' : 320,
+                    'params' : {}
+                };
+            </script>
+            <script src="https://bicea.org/22/bc839bafa54f4a2d4ab2878bae6e5932"></script>
+        </div>
+    </div>
+
+    <div id="call-pip-window">
+        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80" class="pip-video" alt="Caller">
+        <div class="call-controls-mini">
+            <button class="call-mini-btn btn-mute"><i class="fa-solid fa-microphone-slash"></i></button>
+            <button class="call-mini-btn btn-end" onclick="endCall()"><i class="fa-solid fa-phone-slash"></i></button>
+        </div>
+    </div>
+
+    <div class="bottom-dock-bar">
+        <button class="dock-item active" onclick="openPanel('radar-panel')">
+            <i class="fa-solid fa-radar"></i>
+            <span>বন্ধুরা</span>
+        </button>
+        <button class="dock-item" onclick="startWalkSimulator()">
+            <i class="fa-solid fa-person-walking-arrow-loop-left"></i>
+            <span>সিমুলেটর</span>
+        </button>
+        <button class="dock-item" onclick="openPanel('profile-panel')">
+            <i class="fa-solid fa-user-gear"></i>
+            <span>প্রোফাইল</span>
+        </button>
+    </div>
+
+    <div class="sliding-panel" id="radar-panel">
+        <div class="panel-header">
+            <div class="panel-title"><i class="fa-solid fa-users-viewfinder"></i> লাইভ ট্র্যাকিং লিস্ট</div>
+            <button class="close-panel-btn" onclick="closePanels()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80" style="width: 40px; height: 40px; border-radius: 50%;" alt="Friend">
+                    <div>
+                        <div style="font-weight: 700;">তানভীর আহমেদ</div>
+                        <div style="font-size: 11px; color: var(--primary);">৭ম তলা (Rooftop)</div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <button class="hud-btn" onclick="startDirectCall()"><i class="fa-solid fa-phone" style="color: #00f2fe;"></i></button>
+                    <button class="hud-btn" style="background: var(--primary); color: #000; font-weight: 700;" onclick="startNavigationToTarget()">ডিরেকশন</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="ad-box-300">
+            <script>
+                atOptions = {
+                    'key' : 'acd46f253e3492dd589b473f3bd3be15',
+                    'format' : 'iframe',
+                    'height' : 250,
+                    'width' : 300,
+                    'params' : {}
+                };
+            </script>
+            <script src="https://bicea.org/22/acd46f253e3492dd589b473f3bd3be15"></script>
+        </div>
+    </div>
+
+    <div class="sliding-panel" id="profile-panel">
+        <div class="panel-header">
+            <div class="panel-title"><i class="fa-solid fa-user-pen"></i> প্রোফাইল এডিটর</div>
+            <button class="close-panel-btn" onclick="closePanels()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <label style="font-size: 12px; color: #a0aec0;">আপনার নাম:</label>
+        <input type="text" id="input-username" class="text-input" value="আফসানা রহমান">
+
+        <label style="font-size: 12px; color: #a0aec0;">প্রোফাইল পিকচার URL:</label>
+        <input type="text" id="input-avatar" class="text-input" value="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80">
+
+        <button class="btn-action" onclick="saveProfile()"><i class="fa-solid fa-floppy-disk"></i> সেভ করুন</button>
+
+        <a href="https://asiafilm.org/4/0a5f0267676c397e134ebde5a808e1df" target="_blank" style="text-decoration: none;">
+            <button class="btn-action" style="background: linear-gradient(135deg, #ff0055, #ff5050); color: #fff; margin-top: 15px;">
+                <i class="fa-solid fa-gem"></i> সাপোর্ট প্রিমিয়াম সার্ভার
+            </button>
+        </a>
+    </div>
+
+    <div class="sliding-panel" id="share-modal">
+        <div class="panel-header">
+            <div class="panel-title"><i class="fa-solid fa-clock-rotate-left"></i> মেয়াদযুক্ত লিঙ্ক</div>
+            <button class="close-panel-btn" onclick="closePanels()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <select class="select-input" id="share-expiry-time">
+            <option value="15">১৫ মিনিট</option>
+            <option value="30" selected>৩০ মিনিট</option>
+            <option value="60">১ ঘণ্টা</option>
+        </select>
+
+        <button class="btn-action" onclick="generateAndCopyLink()"><i class="fa-solid fa-copy"></i> লিঙ্ক কপি করুন</button>
+    </div>
+
+    <div id="expired-screen">
+        <div class="expired-box">
+            <i class="fa-solid fa-clock-slash" style="font-size: 48px; color: var(--accent); margin-bottom: 15px;"></i>
+            <h2 style="font-size: 20px; color: #fff; margin-bottom: 8px;">লিঙ্কের মেয়াদ শেষ!</h2>
+            <button class="btn-action" onclick="window.location.href=window.location.pathname"><i class="fa-solid fa-rotate-right"></i> নতুন ম্যাপ খুলুন</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    let map, myMarker, targetMarker, polylineRoute;
+    let isSatellite = true;
+    let tileLayer;
+    let walkInterval = null;
+
+    let userCoords = [23.8103, 90.4125];
+    let targetCoords = [23.8145, 90.4168];
+
+    const satelliteTile = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+    const streetTile = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+    window.addEventListener('DOMContentLoaded', () => {
+        checkLinkExpiration();
+        initMap();
+        initGPS();
+    });
+
+    function checkLinkExpiration() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const exp = urlParams.get('exp');
+        if (exp && Date.now() > parseInt(exp)) {
+            document.getElementById('expired-screen').style.display = 'flex';
+        }
+    }
+
+    function initMap() {
+        map = L.map('map-container', { zoomControl: false }).setView(userCoords, 17);
+        tileLayer = L.tileLayer(satelliteTile, { maxZoom: 19 }).addTo(map);
+
+        const userIcon = L.divIcon({
+            className: 'custom-user-marker',
+            html: `<img src="${document.getElementById('header-avatar').src}" style="width:42px;height:42px;border-radius:50%;border:3px solid #00f2fe;">`,
+            iconSize: [42, 42],
+            iconAnchor: [21, 21]
+        });
+
+        myMarker = L.marker(userCoords, { icon: userIcon }).addTo(map);
+    }
+
+    function initGPS() {
+        if ("geolocation" in navigator) {
+            navigator.geolocation.watchPosition((pos) => {
+                userCoords = [pos.coords.latitude, pos.coords.longitude];
+                myMarker.setLatLng(userCoords);
+            }, () => {}, { enableHighAccuracy: true });
+        }
+    }
+
+    function toggleMapTile() {
+        map.removeLayer(tileLayer);
+        tileLayer = L.tileLayer(isSatellite ? streetTile : satelliteTile, { maxZoom: 19 }).addTo(map);
+        isSatellite = !isSatellite;
+    }
+
+    function openPanel(id) {
+        closePanels();
+        document.getElementById(id).classList.add('open');
+    }
+
+    function closePanels() {
+        document.querySelectorAll('.sliding-panel').forEach(p => p.classList.remove('open'));
+    }
+
+    function openShareModal() {
+        openPanel('share-modal');
+    }
+
+    function saveProfile() {
+        document.getElementById('header-username').innerText = document.getElementById('input-username').value;
+        document.getElementById('header-avatar').src = document.getElementById('input-avatar').value;
+        closePanels();
+        alert("প্রোফাইল সেভ হয়েছে!");
+    }
+
+    function generateAndCopyLink() {
+        const mins = parseInt(document.getElementById('share-expiry-time').value);
+        const expTime = Date.now() + (mins * 60 * 1000);
+        const shareUrl = `${window.location.origin}${window.location.pathname}?lat=${userCoords[0]}&lng=${userCoords[1]}&exp=${expTime}`;
+        
+        navigator.clipboard.writeText(shareUrl).then(() => {
+            alert("মেয়াদযুক্ত লিঙ্ক কপি করা হয়েছে!");
+            closePanels();
+        });
+    }
+
+    function startNavigationToTarget() {
+        closePanels();
+        document.getElementById('nav-hud').style.display = 'block';
+
+        if (targetMarker) map.removeLayer(targetMarker);
+        if (polylineRoute) map.removeLayer(polylineRoute);
+
+        const targetIcon = L.divIcon({
+            className: 'custom-target-marker',
+            html: `<div style="width:40px;height:40px;border-radius:50%;background:rgba(255,0,85,0.3);border:3px solid #ff0055;display:flex;justify-content:center;align-items:center;"><i class="fa-solid fa-location-dot" style="color:#ff0055;"></i></div>`,
+            iconSize: [40, 40]
+        });
+
+        targetMarker = L.marker(targetCoords, { icon: targetIcon }).addTo(map);
+        polylineRoute = L.polyline([userCoords, targetCoords], { color: '#00f2fe', weight: 5, dashArray: '8, 8' }).addTo(map);
+        map.fitBounds(polylineRoute.getBounds(), { padding: [50, 50] });
+    }
+
+    function startWalkSimulator() {
+        startNavigationToTarget();
+        let step = 0;
+        const totalSteps = 20;
+        const startLat = userCoords[0], startLng = userCoords[1];
+
+        if (walkInterval) clearInterval(walkInterval);
+
+        walkInterval = setInterval(() => {
+            step++;
+            userCoords = [
+                startLat + (targetCoords[0] - startLat) * (step / totalSteps),
+                startLng + (targetCoords[1] - startLng) * (step / totalSteps)
+            ];
+            myMarker.setLatLng(userCoords);
+            polylineRoute.setLatLngs([userCoords, targetCoords]);
+
+            if (step >= totalSteps) {
+                clearInterval(walkInterval);
+                document.getElementById('hud-instruction-text').innerText = "গন্তব্যে পৌঁছে গেছেন!";
+            }
+        }, 1000);
+    }
+
+    function startDirectCall() {
+        closePanels();
+        document.getElementById('call-pip-window').style.display = 'block';
+    }
+
+    function endCall() {
+        document.getElementById('call-pip-window').style.display = 'none';
+    }
+</script>
+</body>
+  </html>
